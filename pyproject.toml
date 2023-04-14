@@ -11,10 +11,8 @@ python = "^3.10"
 chardet = "^5.1.0"
 mimesis = "^7.1.0"
 pyyaml = "^6.0"
-
-
-[tool.poetry.group.dev.dependencies]
 autopep8 = "^2.0.2"
+
 
 [build-system]
 requires = ["poetry-core"]
