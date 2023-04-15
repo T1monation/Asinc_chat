@@ -4,7 +4,7 @@
 name = "autopep8"
 version = "2.0.2"
 description = "A tool that automatically formats Python code to conform to the PEP 8 style guide"
-category = "dev"
+category = "main"
 optional = false
 python-versions = ">=3.6"
 files = [
@@ -44,7 +44,7 @@ files = [
 name = "pycodestyle"
 version = "2.10.0"
 description = "Python style guide checker"
-category = "dev"
+category = "main"
 optional = false
 python-versions = ">=3.6"
 files = [
@@ -106,7 +106,7 @@ files = [
 name = "tomli"
 version = "2.0.1"
 description = "A lil' TOML parser"
-category = "dev"
+category = "main"
 optional = false
 python-versions = ">=3.7"
 files = [
@@ -117,4 +117,4 @@ files = [
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.10"
-content-hash = "b551dbed063fec5c3297c813d9139512e69d0a062c1143a05e899c38725b9708"
+content-hash = "506567ded9974c931fa123503719ba6a1146332cc9db94c9158365d7bc9b19b7"

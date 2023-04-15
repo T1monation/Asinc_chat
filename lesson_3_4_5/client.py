@@ -2,6 +2,9 @@ from socket import *
 import time
 import json
 import argparse
+import logging
+import log.client_log_config
+import traceback
 
 
 def parser():
@@ -33,24 +36,29 @@ def msg_sender(action='msg', encoding='utf-8', text_msg=''):
 
 
 def incoming_msg(data, encoding='utf-8'):
+    log = logging.getLogger('client')
     json_data = json.loads(data.decode(encoding))
     try:
+        log.info(
+            f'incoming message, server status {json_data["response"]}, {json_data["alert"]} ')
         return f'server status {json_data["response"]}, {json_data["alert"]}'
     except KeyError:
+        log.critical(f'error: {traceback.format_exc()}')
         return 'wrong incoming message'
 
 
 def main():
+    log = logging.getLogger('client')
     args = parser()
     client = socket(AF_INET, SOCK_STREAM)
     client.connect((args.addr, args.port))
-
+    log.info(f'starting whith server addres {args.addr} port {args.port}')
     client.send(msg_sender(action='presense'))
 
     while True:
         client.send(msg_sender())
         data = client.recv(1024)
-        print(incoming_msg(data))
+        incoming_msg(data)
 
 
 if __name__ == '__main__':
