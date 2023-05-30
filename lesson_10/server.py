@@ -1,6 +1,9 @@
 import select
 from socket import *
 from metaclass import ClassVerifier, PortChecker
+import logging
+import sys
+import argparse
 
 
 class Server(metaclass=ClassVerifier):
@@ -9,20 +12,42 @@ class Server(metaclass=ClassVerifier):
     socket = socket()
 
     def __init__(self, ip_addr='localhost', port=7777, max_clients=5, timeout=0.2):
-        self.ip_addr = ip_addr
-        self.port = port
+        self.parsed_args = self.parser()
+        if ip_addr != 'localhost':
+            self.ip_addr = ip_addr
+        else:
+            self.ip_addr = self.parsed_args.addr
+        if port != 7777:
+            self.port = port
+        else:
+            self.port = self.parsed_args.port
         self.max_clients = max_clients
         self.timeout = timeout
+        self.log = logging.getLogger('server')
+        self.log.setLevel(logging.DEBUG)
+        self.handler = logging.StreamHandler(stream=sys.stdout)
+        self.log.addHandler(self.handler)
+
+    @staticmethod
+    def parser():
+        parser = argparse.ArgumentParser(description="Server message app")
+        parser.add_argument('--port', metavar='--p', type=int,
+                            help='server TCP-port', default=7777)
+        parser.add_argument('--addr', metavar='--a', type=str,
+                            help='server address', default='localhost')
+        return parser.parse_args()
 
     def run_server(self):
         self.socket = socket(AF_INET, SOCK_STREAM)
         self.socket.bind((self.ip_addr, self.port))
+        self.log.info(f'starting whith addres {self.ip_addr} port {self.port}')
         self.socket.listen(self.max_clients)
         self.socket.settimeout(self.timeout)
 
         while True:
             try:
                 conn, addr = self.socket.accept()
+                self.log.info(f'start connection on address: {addr}')
             except OSError as e:
                 pass
             else:

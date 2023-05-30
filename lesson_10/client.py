@@ -3,25 +3,50 @@ from socket import *
 import json
 import time
 from metaclass import PortChecker, ClassVerifier
+import argparse
+import logging
+import sys
 
 
 class Client(metaclass=ClassVerifier):
     port = PortChecker()
 
     def __init__(self, client_name='username', ip_addr='localhost', port=7777,):
-        self.ip_addr = ip_addr
-        self.port = port
+        self.parsed_args = self.parser()
+        if ip_addr != 'localhost':
+            self.ip_addr = ip_addr
+        else:
+            self.ip_addr = self.parsed_args.addr
+        if port != 7777:
+            self.port = port
+        else:
+            self.port = self.parsed_args.port
         self.client_name = client_name
+        self.log = logging.getLogger('server')
+        self.log.setLevel(logging.DEBUG)
+        self.handler = logging.StreamHandler(stream=sys.stdout)
+        self.log.addHandler(self.handler)
+
+    @staticmethod
+    def parser():
+        parser = argparse.ArgumentParser(description="Server message app")
+        parser.add_argument('--port', metavar='--p', type=int,
+                            help='server TCP-port', default=7777)
+        parser.add_argument('--addr', metavar='--a', type=str,
+                            help='server address', default='localhost')
+        return parser.parse_args()
 
     def make_connection(self):
         self.socket = socket(AF_INET, SOCK_STREAM)
         self.socket.connect((self.ip_addr, self.port))
+        self.log.info(f'starting whith addres {self.ip_addr} port {self.port}')
 
     @property
     def close_connection(self):
         self.cli_r.kill()
         self.cli_s.kill()
         self.socket.close()
+        self.log.info('Bye-bye, darling!')
         exit(0)
 
     @staticmethod
@@ -49,7 +74,7 @@ class Client(metaclass=ClassVerifier):
                              args=(self.socket, ))
         self.cli_s.start()
         self.cli_r.start()
-        print('Lets start chat:')
+        self.log.info('Lets start chat!')
         while True:
             text = input('\n')
             if text == 'exit':
