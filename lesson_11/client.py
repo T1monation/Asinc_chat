@@ -85,7 +85,8 @@ class Client(metaclass=ClassVerifier):
             if text.startswith('#e'):
                 self.close_connection
             elif text.startswith('#cli'):
-                self.queue_send.put({'name': self.client_name, 'msg': '', 'action': 'list',
+                self.queue_send.put({'name': self.client_name,
+                                     'msg': '', 'action': 'get_contacts',
                                      'time': time.time(), })
             elif text.startswith('#h'):
                 print('Chat command: \n',

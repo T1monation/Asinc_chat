@@ -59,28 +59,25 @@ class Server(metaclass=ClassVerifier):
                 print(f'Получен запрос на соединение от {str(addr)}')
                 self.clients.append(conn)
             finally:
-                wait = 0.2
-                r = []
-                w = []
+                self.wait = 0.2
+                self.r = []
+                self.w = []
                 try:
-                    r, w, e = select.select(
-                        self.clients, self.clients, [], wait)
+                    self.r, self.w, e = select.select(
+                        self.clients, self.clients, [], self.wait)
                 except:
                     pass
-                requests = self.read_requests(r, self.clients)
+                # print('call read_response')
+                requests = self.read_requests
                 if requests:
-                    transmit_response = self.data_analis(requests)
-                    if transmit_response:
-                        self.write_response(
-                            transmit_response, w, self.clients)
+                    self.write_response(requests)
 
-    @staticmethod
-    def read_requests(r_clients: list, all_clients: list):
+    @property
+    def read_requests(self):
         response = {}
-        for sock in r_clients:
+        for sock in self.r:
             try:
                 data = sock.recv(1024).decode('utf-8')
-                response[sock] = data
             except:
                 pass
                 # with Session(engine) as s:
@@ -98,19 +95,22 @@ class Server(metaclass=ClassVerifier):
                 #         f'Клиент {sock.fileno()} {sock.getpeername()} отключился')
                 #     sock.close()
                 #     all_clients.remove(sock)
+            else:
+                check_sock, check_data = self.data_analisis(sock, data)
+                response[check_sock] = check_data
+                print(response)
+
         return response
 
-    @staticmethod
-    def write_response(requests: dict, w_clients: list, all_clients: list):
+    def write_response(self, requests: dict):
         for sock_msg in requests:
-            for sock in w_clients:
+            for sock in self.w:
                 if sock_msg == sock:
                     continue
                 try:
                     resp = requests[sock_msg].encode('utf-8')
                     sock.send(resp)
                 except:
-
                     with Session(engine) as s:
                         #  при отключении клиента по его адресу и порту находим в БД запись
                         #  очищаем data, убираем статус онлайн
@@ -124,68 +124,78 @@ class Server(metaclass=ClassVerifier):
                     print(
                         f'Клиент {sock_msg.fileno()} {sock_msg.getpeername()} отключился')
                     sock.close()
-                    all_clients.remove(sock)
+                    self.clients.remove(sock)
 
-    def data_analis(self, data):
+    def data_analisis(self, sock,  data):
+        """
+        data_analisis - метод - "перехватчик", анализирует сообщения,
+        пользовательские пересылает без изменений, системные обрабатывает,
+        """
+        # False - сообщения для сервера, передаче пользователям не подлежит
         self.return_flag = False
-        for key in data:
-            try:
-                temp_dict = json.loads(data[key])
 
-            except json.decoder.JSONDecodeError as e:
-                pass
-            else:
-                if temp_dict["action"] == 'msg':
-                    self.return_flag = True
-                    user = temp_dict["name"]
-                    with Session(engine) as s:
+        try:
+            ansver = json.loads(data)
 
-                        _find_login = s.scalar(
-                            SEL(Client).where(Client.login.in_([user,])))
+        except json.decoder.JSONDecodeError as e:
+            pass
+        else:
+            if ansver["action"] == 'msg':
+                # Устанавливаем True если сообщение другим пользователям
+                self.return_flag = True
+                user = ansver["name"]
+                with Session(engine) as s:
 
-                        # Создаем первичную запись о клиенте, если клиента с таким логином еще не существовало
-                        if not _find_login:
-                            _client = Client(
-                                login=temp_dict["name"],
-                                #  в data храним адрес и порт для идентификации клиента и его соединения
-                                data=str(key.getpeername()),
-                                status_online=True
-                            )
-                            # применяем изменения в БД
-                            s.add(_client)
-                            s.commit()
+                    _find_login = s.scalar(
+                        SEL(Client).where(Client.login.in_([user,])))
 
-                        else:
-                            # обновляем для уже существующего клиента data в БД
-                            _find_login.data = str(key.getpeername())
-                            _find_login.status_online = True
-
-                        # Для каждого пакета будем писать историю:
-                        _history = History(
-                            client_login=temp_dict["name"],
-                            client_ip=key.getpeername(),
-                            # Долой приватность, пишим все к себе в базу!!!
-                            client_message=temp_dict["msg"]
+                    # Создаем первичную запись о клиенте, если клиента с таким логином еще не существовало
+                    if not _find_login:
+                        _client = Client(
+                            login=ansver["name"],
+                            #  в data храним адрес и порт для идентификации клиента и его соединения
+                            data=str(sock.getpeername()),
+                            status_online=True
                         )
-
-                        s.add(_history)
+                        # применяем изменения в БД
+                        s.add(_client)
                         s.commit()
-                elif temp_dict["action"] == "list":
 
-                    with Session(engine) as s:
-                        find_list = s.execute(SEL(Client.login).where(
-                            Client.status_online == True)).all()
-                        cli_list = [el[0] for el in find_list]
+                    else:
+                        # обновляем для уже существующего клиента data в БД
+                        _find_login.data = str(sock.getpeername())
+                        _find_login.status_online = True
 
-                        returned_dict = {}
-                        returned_dict[key] = {'name': 'server', 'msg': cli_list, 'action': 'list',
-                                              'time': time.time(), }
+                    # Для каждого пакета будем писать историю:
+                    _history = History(
+                        client_login=ansver["name"],
+                        client_ip=sock.getpeername(),
+                        # Долой приватность, пишим все к себе в базу!!!
+                        client_message=ansver["msg"]
+                    )
 
-                    return returned_dict
+                    s.add(_history)
+                    s.commit()
 
-            finally:
-                if self.return_flag:
-                    return data
+
+            elif ansver["action"] == "get_contacts":
+
+                with Session(engine) as s:
+                    find_list = s.execute(SEL(Client.login).where(
+                        Client.status_online == True)).all()
+                    cli_list = [el[0] for el in find_list]
+
+                    ansver = {'name': 'server',
+                              'msg': cli_list,
+                              'action': 'list',
+                              'time': time.time(), }
+
+
+                return sock, json.dumps(ansver)
+
+        finally:
+            if self.return_flag:
+                return sock, data
 
 
 if __name__ == "__main__":
