@@ -4,7 +4,7 @@ from metaclass import ClassVerifier, PortChecker
 import logging
 import sys
 import argparse
-from models import Client, engine, History
+from models import Client, engine, History, Contacts
 from sqlalchemy.orm import Session
 import json
 from sqlalchemy import select as SEL
@@ -179,20 +179,66 @@ class Server(metaclass=ClassVerifier):
                     s.commit()
 
             elif ansver["action"] == "get_contacts":
-
                 with Session(engine) as s:
                     find_list = s.execute(SEL(Client.login).where(
                         Client.status_online == True)).all()
                     cli_list = [el[0] for el in find_list]
+                    response = {'name': 'server',
+                                'msg': f'Clients online list:\n{cli_list}',
+                                'action': 'get_contacts',
+                                'time': time.time(),
+                                'destination': 'self',
+                                'response': 200}
+                return sock, response
 
-                    ansver = {'name': 'server',
-                              'msg': cli_list,
-                              'action': 'get_contacts',
-                              'time': time.time(),
-                              'destination': 'self',
-                              'response': 200}
+            elif ansver["action"] == "add_contact":
+                with Session(engine) as s:
+                    new_frend = Contacts(
+                        owner_login=ansver["name"],
+                        owner_frend=ansver["contact_to_add"]
+                    )
+                    s.add(new_frend)
+                    s.commit()
 
-                return sock, ansver
+                response = {'name': 'server',
+                            'msg': f'client {ansver["contact_to_add"]} add to contact list',
+                            'action': 'msg',
+                            'time': time.time(),
+                            'destination': 'self',
+                            'response': 201}
+                return sock, response
+
+            elif ansver["action"] == "del_contact":
+                with Session(engine) as s:
+
+                    del_frend = s.scalar(
+                        SEL(Contacts).where(
+                            Contacts.owner_login == ansver["name"])
+                        .where(Contacts.owner_frend == ansver["contact_to_del"]))
+
+                    s.delete(del_frend)
+                    s.commit()
+
+                response = {'name': 'server',
+                            'msg': f'client {ansver["contact_to_del"]} del from contact list',
+                            'action': 'msg',
+                            'time': time.time(),
+                            'destination': 'self',
+                            'response': 201}
+                return sock, response
+
+            elif ansver["action"] == "get_frend_list":
+                with Session(engine) as s:
+                    find_list = s.execute(SEL(Contacts.owner_frend).where(
+                        Contacts.owner_login == ansver["name"])).all()
+                    frend_list = [el[0] for el in find_list]
+                    response = {'name': 'server',
+                                'msg': f'Frend list:\n{frend_list}',
+                                'action': 'get_frend_list',
+                                'time': time.time(),
+                                'destination': 'self',
+                                'response': 200}
+                return sock, response
 
         finally:
             if self.return_flag:

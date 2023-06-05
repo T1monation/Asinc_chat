@@ -96,7 +96,29 @@ class Client(metaclass=ClassVerifier):
                       '#e - exit\n',
                       '#h - help\n',
                       '#cli - online clients list\n',
+                      '#add:[frend_name] - add frend to contact',
+                      '#del:[frend_name] - delete frend from contact',
+                      '#fr - get frend list'
                       )
+            elif self.text.startswith('#add'):
+                frend_name = self.text.split('#add:')
+                self.queue_send.put({'name': self.client_name,
+                                     'msg': '', 'action': 'add_contact',
+                                     'contact_to_add': frend_name[1],
+                                     'time': time.time(),
+                                     'destination': 'self'})
+            elif self.text.startswith('#del'):
+                frend_name = self.text.split('#del:')
+                self.queue_send.put({'name': self.client_name,
+                                     'msg': '', 'action': 'del_contact',
+                                     'contact_to_del': frend_name[1],
+                                     'time': time.time(),
+                                     'destination': 'self'})
+            elif self.text.startswith('#fr'):
+                self.queue_send.put({'name': self.client_name,
+                                     'msg': '', 'action': 'get_frend_list',
+                                     'time': time.time(),
+                                     'destination': 'self'})
             else:
                 self.queue_send.put({'name': self.client_name, 'msg': self.text, 'action': 'msg',
                                      'time': time.time(), 'destination': 'other'})
