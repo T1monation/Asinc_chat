@@ -99,17 +99,16 @@ class Server(metaclass=ClassVerifier):
                 check_sock, check_data = self.data_analisis(sock, data)
                 response[check_sock] = check_data
 
-
         return response
 
     def write_response(self, requests: dict):
         for sock_msg in requests:
             for sock in self.w:
+                # Сообзения с пометкой "destination": "self" возврящаем самим себе
+                if requests[sock_msg]["destination"] == "self" and sock_msg != sock:
+                    continue
                 try:
-                    if sock_msg == sock and requests[sock_msg]['destination'] == 'self':
-                        resp = requests[sock_msg].encode('utf-8')
-                    else:
-                        resp = requests[sock_msg].encode('utf-8')
+                    resp = json.dumps(requests[sock_msg]).encode('utf-8')
                     sock.send(resp)
                 except:
                     with Session(engine) as s:
@@ -131,6 +130,7 @@ class Server(metaclass=ClassVerifier):
         """
         data_analisis - метод - "перехватчик", анализирует сообщения,
         пользовательские пересылает без изменений, системные обрабатывает,
+        на выдох отправляет декодированные данные из json
         """
         # False - сообщения для сервера, передаче пользователям не подлежит
         self.return_flag = False
@@ -178,7 +178,6 @@ class Server(metaclass=ClassVerifier):
                     s.add(_history)
                     s.commit()
 
-
             elif ansver["action"] == "get_contacts":
 
                 with Session(engine) as s:
@@ -189,14 +188,15 @@ class Server(metaclass=ClassVerifier):
                     ansver = {'name': 'server',
                               'msg': cli_list,
                               'action': 'get_contacts',
-                              'time': time.time(), }
+                              'time': time.time(),
+                              'destination': 'self',
+                              'response': 200}
 
-
-                return sock, json.dumps(ansver)
+                return sock, ansver
 
         finally:
             if self.return_flag:
-                return sock, data
+                return sock, ansver
 
 
 if __name__ == "__main__":
