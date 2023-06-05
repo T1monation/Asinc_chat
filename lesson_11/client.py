@@ -48,7 +48,9 @@ class Client(metaclass=ClassVerifier):
 
     @property
     def close_connection(self):
+
         self.cli_r.kill()
+
         self.cli_s.kill()
         self.socket.close()
         self.log.info('Bye-bye, darling!')
@@ -81,22 +83,24 @@ class Client(metaclass=ClassVerifier):
         self.cli_r.start()
         self.log.info('Lets start chat!')
         while True:
-            text = input('\n')
-            if text.startswith('#e'):
+            self.text = input('\n')
+            if self.text.startswith('#e'):
                 self.close_connection
-            elif text.startswith('#cli'):
+            elif self.text.startswith('#cli'):
                 self.queue_send.put({'name': self.client_name,
                                      'msg': '', 'action': 'get_contacts',
-                                     'time': time.time(), })
-            elif text.startswith('#h'):
+                                     'time': time.time(),
+                                     'destination': 'self'})
+            elif self.text.startswith('#h'):
                 print('Chat command: \n',
                       '#e - exit\n',
                       '#h - help\n',
                       '#cli - online clients list\n',
                       )
             else:
-                self.queue_send.put({'name': self.client_name, 'msg': text, 'action': 'msg',
-                                     'time': time.time(), })
+                self.queue_send.put({'name': self.client_name, 'msg': self.text, 'action': 'msg',
+                                     'time': time.time(), 'destination': 'other'})
+            self.text = None
 
     @property
     def start_chat(self):
