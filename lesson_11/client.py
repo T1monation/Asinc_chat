@@ -48,7 +48,9 @@ class Client(metaclass=ClassVerifier):
 
     @property
     def close_connection(self):
+
         self.cli_r.kill()
+
         self.cli_s.kill()
         self.socket.close()
         self.log.info('Bye-bye, darling!')
@@ -81,21 +83,46 @@ class Client(metaclass=ClassVerifier):
         self.cli_r.start()
         self.log.info('Lets start chat!')
         while True:
-            text = input('\n')
-            if text.startswith('#e'):
+            self.text = input('\n')
+            if self.text.startswith('#e'):
                 self.close_connection
-            elif text.startswith('#cli'):
-                self.queue_send.put({'name': self.client_name, 'msg': '', 'action': 'list',
-                                     'time': time.time(), })
-            elif text.startswith('#h'):
+            elif self.text.startswith('#cli'):
+                self.queue_send.put({'name': self.client_name,
+                                     'msg': '', 'action': 'get_contacts',
+                                     'time': time.time(),
+                                     'destination': 'self'})
+            elif self.text.startswith('#h'):
                 print('Chat command: \n',
                       '#e - exit\n',
                       '#h - help\n',
                       '#cli - online clients list\n',
+                      '#add:[frend_name] - add frend to contact',
+                      '#del:[frend_name] - delete frend from contact',
+                      '#fr - get frend list'
                       )
+            elif self.text.startswith('#add'):
+                frend_name = self.text.split('#add:')
+                self.queue_send.put({'name': self.client_name,
+                                     'msg': '', 'action': 'add_contact',
+                                     'contact_to_add': frend_name[1],
+                                     'time': time.time(),
+                                     'destination': 'self'})
+            elif self.text.startswith('#del'):
+                frend_name = self.text.split('#del:')
+                self.queue_send.put({'name': self.client_name,
+                                     'msg': '', 'action': 'del_contact',
+                                     'contact_to_del': frend_name[1],
+                                     'time': time.time(),
+                                     'destination': 'self'})
+            elif self.text.startswith('#fr'):
+                self.queue_send.put({'name': self.client_name,
+                                     'msg': '', 'action': 'get_frend_list',
+                                     'time': time.time(),
+                                     'destination': 'self'})
             else:
-                self.queue_send.put({'name': self.client_name, 'msg': text, 'action': 'msg',
-                                     'time': time.time(), })
+                self.queue_send.put({'name': self.client_name, 'msg': self.text, 'action': 'msg',
+                                     'time': time.time(), 'destination': 'other'})
+            self.text = None
 
     @property
     def start_chat(self):

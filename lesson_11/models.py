@@ -46,3 +46,11 @@ class History(Base):
 
     # def __unicode__(self):
     #     return self.title
+
+
+class Contacts(Base):
+    __tablename__ = "contacts"
+
+    id = Column(Integer, primary_key=True)
+    owner_login = Column(String(255), ForeignKey("clients.login"))
+    owner_frend = Column(String(255), ForeignKey("clients.login"))
