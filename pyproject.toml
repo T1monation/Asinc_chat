@@ -7,7 +7,7 @@ readme = "README.md"
 packages = [{include = "asinc_chat"}]
 
 [tool.poetry.dependencies]
-python = "^3.10"
+python = ">=3.10,<3.11"
 chardet = "^5.1.0"
 mimesis = "^7.1.0"
 pyyaml = "^6.0"
@@ -17,6 +17,7 @@ sqlalchemy = "^2.0.15"
 postgres = "^4.0"
 alembic = "^1.11.1"
 black = "^23.3.0"
+pyside2 = "^5.15.2.1"
 
 
 [build-system]
