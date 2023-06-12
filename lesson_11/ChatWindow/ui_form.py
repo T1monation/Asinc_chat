@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 ################################################################################
-## Form generated from reading UI file 'formiWVbMN.ui'
+## Form generated from reading UI file 'formwtLuTJ.ui'
 ##
 ## Created by: Qt User Interface Compiler version 6.2.4
 ##
