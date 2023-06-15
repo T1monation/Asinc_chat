@@ -67,7 +67,6 @@ class Server(metaclass=ClassVerifier):
                         self.clients, self.clients, [], self.wait)
                 except:
                     pass
-                # print('call read_response')
                 requests = self.read_requests
                 if requests:
                     self.write_response(requests)
@@ -94,8 +93,9 @@ class Server(metaclass=ClassVerifier):
                 #     print(
                 #         f'Клиент {sock.fileno()} {sock.getpeername()} отключился')
                 #     sock.close()
-                #     all_clients.remove(sock)
+                #     self.clients.remove(sock)
             else:
+
                 check_sock, check_data = self.data_analisis(sock, data)
                 response[check_sock] = check_data
 
@@ -132,15 +132,47 @@ class Server(metaclass=ClassVerifier):
         пользовательские пересылает без изменений, системные обрабатывает,
         на выдох отправляет декодированные данные из json
         """
-        # False - сообщения для сервера, передаче пользователям не подлежит
-        self.return_flag = False
 
         try:
             ansver = json.loads(data)
 
         except json.decoder.JSONDecodeError as e:
-            pass
+            print(f'some error:\n{e}\ndata:\n{data}')
+            return sock, data
         else:
+            if ansver["action"] == "presense":
+                user = ansver["name"]
+                with Session(engine) as s:
+
+                    _find_login = s.scalar(
+                        SEL(Client).where(Client.login.in_([user,])))
+
+                    # Создаем первичную запись о клиенте, если клиента с таким логином еще не существовало
+                    if not _find_login:
+                        _client = Client(
+                            login=ansver["name"],
+                            #  в data храним адрес и порт для идентификации клиента и его соединения
+                            data=str(sock.getpeername()),
+                            status_online=True
+                        )
+                        # применяем изменения в БД
+                        s.add(_client)
+                        s.commit()
+
+                    else:
+                        # обновляем для уже существующего клиента data в БД
+                        _find_login.data = str(sock.getpeername())
+                        _find_login.status_online = True
+
+                        s.commit()
+                response = {'name': 'server',
+                            'msg': "you online!",
+                            'action': 'msg',
+                            'time': time.time(),
+                            'destination': 'self',
+                            'response': 200}
+                return sock, response
+
             if ansver["action"] == 'msg':
                 # Устанавливаем True если сообщение другим пользователям
                 self.return_flag = True
@@ -174,17 +206,22 @@ class Server(metaclass=ClassVerifier):
                         # Долой приватность, пишим все к себе в базу!!!
                         client_message=ansver["msg"]
                     )
-
                     s.add(_history)
                     s.commit()
+
+                return sock, ansver
 
             elif ansver["action"] == "get_contacts":
                 with Session(engine) as s:
                     find_list = s.execute(SEL(Client.login).where(
                         Client.status_online == True)).all()
                     cli_list = [el[0] for el in find_list]
+                    find_list_2 = s.execute(SEL(Contacts.owner_frend).where(
+                        Contacts.owner_login == ansver["name"])).all()
+                    frend_list = [el[0] for el in find_list_2]
                     response = {'name': 'server',
-                                'msg': f'Clients online list:\n{cli_list}',
+                                'cli_online': cli_list,
+                                'frends': frend_list,
                                 'action': 'get_contacts',
                                 'time': time.time(),
                                 'destination': 'self',
@@ -233,16 +270,15 @@ class Server(metaclass=ClassVerifier):
                         Contacts.owner_login == ansver["name"])).all()
                     frend_list = [el[0] for el in find_list]
                     response = {'name': 'server',
-                                'msg': f'Frend list:\n{frend_list}',
+                                'frend_list': frend_list,
                                 'action': 'get_frend_list',
                                 'time': time.time(),
                                 'destination': 'self',
                                 'response': 200}
                 return sock, response
-
-        finally:
-            if self.return_flag:
-                return sock, ansver
+            else:
+                print(ansver)
+                raise TypeError
 
 
 if __name__ == "__main__":
