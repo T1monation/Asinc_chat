@@ -19,6 +19,7 @@ class Client(Base):
 
     id = Column(Integer, primary_key=True)
     login = Column(String(255), unique=True)
+    password = Column(String(255))
     data = Column(String)
     status_online = Column(Boolean, default=False)
     registered_at = Column(DateTime, default=datetime.utcnow)

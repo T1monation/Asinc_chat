@@ -5,9 +5,9 @@ from PySide6 import QtWidgets
 from PySide6.QtCore import Slot, Qt, Signal, Slot, QThread
 from time import sleep
 import time
-from client import Client
 from ChatWindow.ui_form import Ui_ChatWindow
 from client_gui import Client
+from first_form import StartWindow
 
 
 client = Client()
@@ -35,14 +35,16 @@ class My_Window(QMainWindow):
     # "коробка" сообщений
     message_box = QMessageBox
 
-    def __init__(self):
+    def __init__(self, name, hashed_password, register_flag: bool):
         super().__init__()
         self.ui = Ui_ChatWindow()
         self.ui.setupUi(self)
+        self.client_name = name
+        self.hashed_password = hashed_password
+        # если True = режим регистрации нового пользователя
+        self.register_flag = register_flag
 
-        self.ui.set_name_button.clicked.connect(self.clicked_set_client_name)
         self.ui.connect_button.clicked.connect(self.clicked_connect_button)
-        self.ui.name_input.textChanged.connect(self.set_client)
         self.ui.disconnect_button.clicked.connect(
             self.clicked_disconnect_button)
         self.ui.send_to_chat_button.clicked.connect(
@@ -58,20 +60,16 @@ class My_Window(QMainWindow):
 
         self.show()
 
-    def clicked_set_client_name(self):
-        self.ui.set_name_button.setEnabled(False)
-        self.ui.connect_button.setEnabled(True)
-        self.ui.name_input.setEnabled(False)
-        client.client_name = self.client_text_name
-
     def clicked_connect_button(self):
 
         self.ui.connect_button.setEnabled(False)
         self.ui.disconnect_button.setEnabled(True)
         client.start_chat
         sleep(0.2)
-        client.presense
+        if self.register_flag:
+            client.register(self.client_name, self.hashed_password)
         sleep(0.2)
+        client.presense
 
     def set_client(self, name):
         self.client_text_name = name
@@ -115,6 +113,11 @@ class My_Window(QMainWindow):
                             pass
                 else:
                     self.ui.new_message.setEnabled(True)
+        if message["action"] == "register_sucsess":
+            self.message_box.information(
+                self, 'registration sucsess', message["msg"], QMessageBox.StandardButton.Ok, QMessageBox.StandardButton.NoButton)
+            self.register_flag = False
+
         if message["action"] == "get_contacts":
             if not self.clients_list_online_qt:
                 self.clients_list_online_qt = QStandardItemModel()
@@ -264,10 +267,21 @@ class OnlineListUpdater(QThread):
 
 if __name__ == '__main__':
     app = QApplication(sys.argv)
-    window = My_Window()
+    # Запускаем экран приветствия:
+    start_window = StartWindow()
+
+    if start_window.ui.register_button.pressed and start_window.register_flag:
+        window = My_Window(
+            start_window.login, start_window.hashed_password, start_window.register_flag)
+        app.exec()
+    else:
+        window = My_Window(start_window.login,
+                           start_window.hashed_password, False)
+        app.exec()
     msg_updater = MsgUpdater()
+
     online_status = OnlineListUpdater()
     window.ui.connect_button.clicked.connect(msg_updater.start)
     window.ui.connect_button.clicked.connect(online_status.start)
     msg_updater.new_message.connect(window.get_new_message)
-    sys.exit(app.exec())
+    # sys.exit(app.exec())

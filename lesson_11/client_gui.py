@@ -12,6 +12,7 @@ from PySide6.QtCore import SignalInstance, Signal, QObject
 class Client(QObject):
     port = PortChecker()
     text = str()
+    hashed_password = None
 
     def __init__(self, client_name='username', ip_addr='localhost', port=7777,):
         QObject.__init__(self)
@@ -105,6 +106,17 @@ class Client(QObject):
              'contact_to_add': name,
              'time': time.time(),
              'destination': 'self'}
+        )
+
+    def register(self, login, password):
+        self.queue_send.put(
+            {
+                "action": "register",
+                "name": login,
+                "password": password,
+                "time": time.time(),
+                "destination": "self"
+            }
         )
 
     @property

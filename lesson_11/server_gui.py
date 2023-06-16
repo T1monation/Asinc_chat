@@ -276,6 +276,35 @@ class Server(metaclass=ClassVerifier):
                                 'destination': 'self',
                                 'response': 200}
                 return sock, response
+
+            elif ansver["action"] == "register":
+                user = ansver["name"]
+                with Session(engine) as s:
+
+                    _find_login = s.scalar(
+                        SEL(Client).where(Client.login.in_([user,])))
+
+                    # Создаем первичную запись о клиенте, если клиента с таким логином еще не существовало
+                    if not _find_login:
+                        _client = Client(
+                            login=ansver["name"],
+                            #  в data храним адрес и порт для идентификации клиента и его соединения
+                            password=ansver["password"],
+                            data=str(sock.getpeername()),
+                            status_online=True
+                        )
+                        # применяем изменения в БД
+                        s.add(_client)
+                        s.commit()
+
+                        response = {'name': 'server',
+                                    'msg': f'client {ansver["name"]} add to Chat DB',
+                                    'action': 'register_sucsess',
+                                    'time': time.time(),
+                                    'destination': 'self',
+                                    'response': 201}
+                    return sock, response
+
             else:
                 print(ansver)
                 raise TypeError
