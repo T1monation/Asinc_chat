@@ -79,7 +79,7 @@ class Server(metaclass=ClassVerifier):
                     pass
                 requests = self.read_requests
                 if requests:
-                    print("11111\n", requests)
+
                     self.write_response(requests)
 
     @property
@@ -107,15 +107,12 @@ class Server(metaclass=ClassVerifier):
                     sock.close()
                     self.clients.remove(sock)
             else:
-                print(sock)
-                print(data)
                 check_sock, check_data = self.data_analisis(sock, data)
                 response[check_sock] = check_data
 
         return response
 
     def sender(self, msg, sock):
-        print(msg, sock)
         resp = json.dumps(msg).encode('utf-8')
         try:
             sock.send(resp)
@@ -150,10 +147,6 @@ class Server(metaclass=ClassVerifier):
                         SEL(Client).where(Client.login == requests[sock_msg]["destination"]))
 
                 for sock in self.w:
-                    print(sock.fileno())
-                    print(find_user.sock_number)
-                    print(type(sock.fileno()))
-                    print(type(find_user.sock_number))
                     if str(sock.getpeername()) == find_user.data and str(sock.fileno()) == find_user.sock_number:
 
                         self.sender(requests[sock_msg], sock)

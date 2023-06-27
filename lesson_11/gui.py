@@ -136,7 +136,6 @@ class My_Window(QMainWindow):
     @auth_check
     @Slot(dict)
     def get_new_message(self, message):
-        print(message)
         if not self.msg_list:
             self.msg_list = QStandardItemModel()
             self.ui.input_msg_list.setModel(self.msg_list)
@@ -336,7 +335,6 @@ class MsgUpdater(QThread):
             if not self.client_item.queue_read.empty():
                 msg = self.client_item.queue_read.get()
                 self.client_item.queue_read.task_done()
-                print("222\n", msg)
                 self.new_message.emit(msg)
 
 
