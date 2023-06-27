@@ -57,58 +57,6 @@
     </item>
    </layout>
   </widget>
-  <widget class="QWidget" name="formLayoutWidget">
-   <property name="geometry">
-    <rect>
-     <x>570</x>
-     <y>20</y>
-     <width>251</width>
-     <height>151</height>
-    </rect>
-   </property>
-   <layout class="QFormLayout" name="formLayout">
-    <item row="0" column="0">
-     <widget class="QLabel" name="clientsNameLabel">
-      <property name="text">
-       <string>Clients name</string>
-      </property>
-     </widget>
-    </item>
-    <item row="0" column="1">
-     <widget class="QLineEdit" name="name_input"/>
-    </item>
-    <item row="1" column="1">
-     <widget class="QPushButton" name="set_name_button">
-      <property name="text">
-       <string>Set clients name</string>
-      </property>
-      <property name="autoRepeatDelay">
-       <number>300</number>
-      </property>
-     </widget>
-    </item>
-    <item row="2" column="1">
-     <widget class="QPushButton" name="connect_button">
-      <property name="enabled">
-       <bool>false</bool>
-      </property>
-      <property name="text">
-       <string>Connect</string>
-      </property>
-     </widget>
-    </item>
-    <item row="3" column="1">
-     <widget class="QPushButton" name="disconnect_button">
-      <property name="enabled">
-       <bool>false</bool>
-      </property>
-      <property name="text">
-       <string>Disconnect</string>
-      </property>
-     </widget>
-    </item>
-   </layout>
-  </widget>
   <widget class="QWidget" name="verticalLayoutWidget_3">
    <property name="geometry">
     <rect>
@@ -181,6 +129,69 @@
    </property>
    <property name="text">
     <string>Read new message</string>
+   </property>
+  </widget>
+  <widget class="QPushButton" name="login_button">
+   <property name="enabled">
+    <bool>true</bool>
+   </property>
+   <property name="geometry">
+    <rect>
+     <x>650</x>
+     <y>90</y>
+     <width>174</width>
+     <height>24</height>
+    </rect>
+   </property>
+   <property name="text">
+    <string>Login</string>
+   </property>
+  </widget>
+  <widget class="QPushButton" name="disconnect_button">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
+   <property name="geometry">
+    <rect>
+     <x>650</x>
+     <y>130</y>
+     <width>174</width>
+     <height>24</height>
+    </rect>
+   </property>
+   <property name="text">
+    <string>Disconnect</string>
+   </property>
+  </widget>
+  <widget class="QLabel" name="client_name_label">
+   <property name="geometry">
+    <rect>
+     <x>650</x>
+     <y>20</y>
+     <width>171</width>
+     <height>21</height>
+    </rect>
+   </property>
+   <property name="font">
+    <font>
+     <pointsize>14</pointsize>
+    </font>
+   </property>
+   <property name="text">
+    <string>Welcome to chat!</string>
+   </property>
+  </widget>
+  <widget class="QPushButton" name="test_button">
+   <property name="geometry">
+    <rect>
+     <x>360</x>
+     <y>120</y>
+     <width>75</width>
+     <height>24</height>
+    </rect>
+   </property>
+   <property name="text">
+    <string>test button</string>
    </property>
   </widget>
  </widget>

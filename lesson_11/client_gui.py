@@ -7,11 +7,17 @@ import argparse
 import logging
 import sys
 from PySide6.QtCore import SignalInstance, Signal, QObject
+import re
+from functools import wraps
+
+PATTERN = r'\{.*?\}\B'
 
 
 class Client(QObject):
+
     port = PortChecker()
     text = str()
+    hashed_password = None
 
     def __init__(self, client_name='username', ip_addr='localhost', port=7777,):
         QObject.__init__(self)
@@ -64,7 +70,12 @@ class Client(QObject):
     def client_send_m(socket, q: JoinableQueue):
         while True:
             msg = q.get()
-            socket.send(json.dumps(msg).encode('utf-8'))
+            if isinstance(msg, dict):
+                socket.send(json.dumps(msg).encode('utf-8'))
+            else:
+                split_msg = re.findall(PATTERN, msg)
+                for el in split_msg:
+                    socket.send(json.dumps(el).encode('utf-8'))
             q.task_done()
 
     @staticmethod
@@ -107,16 +118,40 @@ class Client(QObject):
              'destination': 'self'}
         )
 
+    def register(self, login, password):
+        self.queue_send.put(
+            {
+                "action": "register",
+                "name": login,
+                "password": password,
+                "time": time.time(),
+                "destination": "self"
+            }
+        )
+
     @property
     def presense(self):
         self.queue_send.put(
             {'name': self.client_name,
+             'hashed_password': self.hashed_password,
              'action': 'presense',
              'time': time.time(),
              'destination': 'self'}
         )
 
-    def send_message(self, text: str):
+    def auth(self, msg):
+        self.queue_send.put(
+            {
+                'login': self.client_name,
+                'hashed_password': self.hashed_password,
+                'b_stryng': msg,
+                'action': 'auth',
+                'time': time.time(),
+                'destination': 'self'
+            }
+        )
+
+    def send_message(self, text: str, destination='self'):
         self.text = text
         if self.text.startswith('#e'):
             self.close_connection
@@ -155,7 +190,7 @@ class Client(QObject):
                                  'destination': 'self'})
         else:
             self.queue_send.put({'name': self.client_name, 'msg': self.text, 'action': 'msg',
-                                'time': time.time(), 'destination': 'other'})
+                                'time': time.time(), 'destination': destination})
         self.text = None
 
     @property

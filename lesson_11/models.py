@@ -1,4 +1,4 @@
-from sqlalchemy import ForeignKey, Table, create_engine, Column, Integer, String, MetaData, DateTime, Boolean
+from sqlalchemy import ForeignKey, Table, create_engine, Column, Integer, String, MetaData, DateTime, Boolean, LargeBinary, Tuple
 from sqlalchemy.orm import relationship, DeclarativeBase
 from datetime import datetime
 
@@ -19,7 +19,11 @@ class Client(Base):
 
     id = Column(Integer, primary_key=True)
     login = Column(String(255), unique=True)
+    password = Column(String(255))
     data = Column(String)
+    sock_number = Column(String(255))
+    is_authenticated = Column(Boolean, default=False)
+    auth_string = Column(String)
     status_online = Column(Boolean, default=False)
     registered_at = Column(DateTime, default=datetime.utcnow)
 

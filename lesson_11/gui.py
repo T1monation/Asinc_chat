@@ -1,22 +1,25 @@
 import sys
-from PySide6.QtWidgets import QWidget, QApplication, QMainWindow, QMessageBox
+from PySide6.QtWidgets import QApplication, QMainWindow, QMessageBox
 from PySide6.QtGui import QStandardItemModel, QStandardItem, QBrush, QColor
-from PySide6 import QtWidgets
 from PySide6.QtCore import Slot, Qt, Signal, Slot, QThread
 from time import sleep
 import time
-from client import Client
 from ChatWindow.ui_form import Ui_ChatWindow
 from client_gui import Client
+from first_form import StartWindow
+import hmac
+import hashlib
+from functools import wraps
 
-
-client = Client()
+SICRET_KEY = "my_sickret_key"
+IS_AUTHENTICATED = False
 
 
 class My_Window(QMainWindow):
     list_m = list()
     msg_list = None
-    new_message = Signal(dict)
+    ready_to_connection = Signal(bool)
+    start_message_update = Signal(bool)
     start_flag = False
     # Переменная-хранилище QStandardItemModel
     clients_list_online_qt = None
@@ -34,21 +37,31 @@ class My_Window(QMainWindow):
     name_index_dict = dict()
     # "коробка" сообщений
     message_box = QMessageBox
+    # Флаг регистрации нового пользователя
+    register_flag = False
+    # Флаг аутентификации
+    auth_state = False
+    __auth__ = False
 
-    def __init__(self):
+    # def __init__(self, client_item: Client, name, hashed_password, register_flag: bool):
+    def __init__(self, client_item: Client, client_name, hashed_password, register_flag):
         super().__init__()
         self.ui = Ui_ChatWindow()
         self.ui.setupUi(self)
+        self.client_item = client_item
+        self.client_item.client_name = client_name
+        self.hashed_password = hashed_password
+        # # если True = режим регистрации нового пользователя
+        self.register_flag = register_flag
 
-        self.ui.set_name_button.clicked.connect(self.clicked_set_client_name)
-        self.ui.connect_button.clicked.connect(self.clicked_connect_button)
-        self.ui.name_input.textChanged.connect(self.set_client)
+        self.ui.login_button.clicked.connect(self.clicked_login_button)
         self.ui.disconnect_button.clicked.connect(
             self.clicked_disconnect_button)
         self.ui.send_to_chat_button.clicked.connect(
             self.clicked_send_to_chat_button)
         self.ui.input_msg_list.setHorizontalScrollBarPolicy(
             Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        self.ui.test_button.clicked.connect(self.test)
         self.ui.input_msg_list.setWordWrap(True)
         self.ui.new_message.setEnabled(False)
         self.ui.frends_list.doubleClicked.connect(self.del_frend)
@@ -58,41 +71,83 @@ class My_Window(QMainWindow):
 
         self.show()
 
-    def clicked_set_client_name(self):
-        self.ui.set_name_button.setEnabled(False)
-        self.ui.connect_button.setEnabled(True)
-        self.ui.name_input.setEnabled(False)
-        client.client_name = self.client_text_name
+    def clicked_login_button(self):
 
-    def clicked_connect_button(self):
-
-        self.ui.connect_button.setEnabled(False)
+        self.ui.login_button.setEnabled(False)
+        self.ui.client_name_label.setText(
+            f'Client: {self.client_item.client_name}')
         self.ui.disconnect_button.setEnabled(True)
-        client.start_chat
+        self.start_message_update.emit(True)
         sleep(0.2)
-        client.presense
-        sleep(0.2)
+        self.client_item.hashed_password = self.hashed_password
+        self.client_item.start_chat
 
-    def set_client(self, name):
-        self.client_text_name = name
+        if self.register_flag:
+            self.client_item.register(
+                self.client_item.client_name, self.hashed_password)
+        else:
+            self.client_item.presense
 
     def clicked_disconnect_button(self):
-        client.close_connection()
+        self.client_item.close_connection()
         self.ui.disconnect_button.setEnabled(False)
         self.ui.connect_button.setEnabled(True)
 
+    @staticmethod
+    def login_required(func):
+        """
+        декоратор проверки авторизации
+        """
+        @wraps(func)
+        def call(*args, **kwargs):
+            if IS_AUTHENTICATED:
+                return func(*args, **kwargs)
+        return call
+
+    @login_required
+    def test(self):
+        """
+        кнопка - тестер, срабатывает при авторизации
+        """
+        self.message_box.information(
+            self, 'test', 'auth ok', QMessageBox.StandardButton.Ok, QMessageBox.StandardButton.NoButton)
+
     def clicked_send_to_chat_button(self):
-        client.send_message(self.ui.msg_to_chat.text())
+        self.client_item.send_message(
+            self.ui.msg_to_chat.text(), self.current_chat)
+        self.message_writher(self.ui.msg_to_chat.text())
         self.ui.msg_to_chat.clear()
 
+    @staticmethod
+    def auth_check(func):
+        """
+        Декоратор для перехвата входящих сообщений, и считывания статуса авторизации
+        """
+        @wraps(func)
+        def call(*args, **kwargs):
+            for el in args:
+                if isinstance(el, dict):
+                    if "auth_state" in el:
+                        global IS_AUTHENTICATED
+                        IS_AUTHENTICATED = el["auth_state"]
+            return func(*args, **kwargs)
+        return call
+
+    @auth_check
     @Slot(dict)
     def get_new_message(self, message):
         if not self.msg_list:
             self.msg_list = QStandardItemModel()
             self.ui.input_msg_list.setModel(self.msg_list)
+        if message["action"] == "auth":
+            hash = hmac.new(SICRET_KEY.encode('utf-8'),
+                            message["b_string"].encode('utf-8'), hashlib.sha256)
+            digest = hash.hexdigest()
+            self.client_item.auth(digest)
+
         if message["action"] == "msg":
             if message["name"] == "server":
-                self.message_box.question(
+                self.message_box.information(
                     self, "message", f"{message['name']}:\n{message['msg']}", QMessageBox.StandardButton.Ok)
 
             elif message["name"] == self.current_chat:
@@ -105,7 +160,6 @@ class My_Window(QMainWindow):
                         pass
                     else:
                         if self.message_box.question(self, "Добавить в друзья?", f"Пользователь {message['name']} прислал сообщение", QMessageBox.StandardButton.Yes, QMessageBox.StandardButton.No) == QMessageBox.StandardButton.Yes:
-                            print(type(message["name"]))
                             self.add_frend(message["name"])
                             sleep(0.5)
                             self.chat_dict[message["name"]] = []
@@ -115,6 +169,28 @@ class My_Window(QMainWindow):
                             pass
                 else:
                     self.ui.new_message.setEnabled(True)
+        if message["action"] == "register_sucsess":
+            self.message_box.information(
+                self, 'registration sucsess', message["msg"], QMessageBox.StandardButton.Ok, QMessageBox.StandardButton.NoButton)
+            self.register_flag = False
+            self.ready_to_connection.emit(True)
+
+        if message["action"] == 'register_exist':
+            self.message_box.critical(
+                self, 'registration sucsess', message["msg"], QMessageBox.StandardButton.Ok)
+            self.client_item.close_connection
+
+        if message["action"] == "auth_ok":
+            self.message_box.information(
+                self, "message", f"{message['name']}:\nYou online!", QMessageBox.StandardButton.Ok)
+            self.auth_state = True
+            self.ready_to_connection.emit(True)
+
+        if message["action"] == "auth_false":
+            self.message_box.critical(
+                self, 'ERROR', 'You are not authenticated!', QMessageBox.StandardButton.Ok)
+            self.client_item.close_connection
+
         if message["action"] == "get_contacts":
             if not self.clients_list_online_qt:
                 self.clients_list_online_qt = QStandardItemModel()
@@ -161,46 +237,56 @@ class My_Window(QMainWindow):
                     self.frends_list_qt.appendRow(mess)
 
     def message_writher(self, message):
-        if message["name"] == self.client_text_name:
+        if isinstance(message, str):
             mess = QStandardItem(
-                f'Я:\n{message["msg"]}')
+                f'Я:\n{message}')
             mess.setEditable(False)
             mess.setBackground(QBrush(QColor(0, 255, 127)))
             mess.setTextAlignment(Qt.AlignRight)
-        elif message["name"] == 'server':
-            mess = QStandardItem(
-                f'server:\n{message["msg"]}')
-            mess.setEditable(False)
-            mess.setBackground(QBrush(QColor(0, 255, 255)))
-            mess.setTextAlignment(Qt.AlignHCenter)
         else:
-            mess = QStandardItem(
-                f'{message["name"]}:\n{message["msg"]}')
-            mess.setEditable(False)
-            mess.setBackground(QBrush(QColor(255, 213, 213)))
-            mess.setTextAlignment(Qt.AlignLeft)
+
+            if message["name"] == 'server':
+                mess = QStandardItem(
+                    f'server:\n{message["msg"]}')
+                mess.setEditable(False)
+                mess.setBackground(QBrush(QColor(0, 255, 255)))
+                mess.setTextAlignment(Qt.AlignHCenter)
+            else:
+                mess = QStandardItem(
+                    f'{message["name"]}:\n{message["msg"]}')
+                mess.setEditable(False)
+                mess.setBackground(QBrush(QColor(255, 213, 213)))
+                mess.setTextAlignment(Qt.AlignLeft)
         self.msg_list.appendRow(mess)
 
     def del_frend(self, item):
-        if isinstance(item, QStandardItem):
-            client_to_del = item.data()
         if isinstance(item, str):
             client_to_del = item
-        client.client_to_del(client_to_del)
+        else:
+            try:
+                data = item.data()
+            except Exception as e:
+                print(e, "\n12121\n", item, "\n", type(item))
+            else:
+                client_to_del = data
+        self.client_item.client_to_del(client_to_del)
         sleep(0.2)
-        client.client_online_list
+        self.client_item.client_online_list
 
     def add_frend(self, item):
-        if isinstance(item, QStandardItem):
-            client_to_add = item.data()
-        elif isinstance(item, str):
+        if isinstance(item, str):
             client_to_add = item
         else:
-            print(item, "\n", type(item))
-            raise TypeError
-        client.client_to_add(client_to_add)
+            try:
+                data = item.data()
+            except Exception as e:
+                print(e, "\n12121\n", item, "\n", type(item))
+            else:
+                client_to_add = data
+
+        self.client_item.client_to_add(client_to_add)
         sleep(0.2)
-        client.client_online_list
+        self.client_item.client_online_list
 
     def active_chat(self, el):
         self.current_chat = self.ui.comboBox.currentText()
@@ -239,11 +325,16 @@ class MsgUpdater(QThread):
     """
     new_message = Signal(dict)
 
+    def __init__(self, client_item: Client):
+        super().__init__()
+        print("start function MsgUpdater")
+        self.client_item = client_item
+
     def run(self):
         while True:
-            if not client.queue_read.empty():
-                msg = client.queue_read.get()
-                client.queue_read.task_done()
+            if not self.client_item.queue_read.empty():
+                msg = self.client_item.queue_read.get()
+                self.client_item.queue_read.task_done()
                 self.new_message.emit(msg)
 
 
@@ -253,21 +344,36 @@ class OnlineListUpdater(QThread):
     с интервалом времени в 10 секунд
     """
     online_list = Signal(list)
-    temp_list = []
+
+    def __init__(self, client_item: Client):
+        super().__init__()
+        print("start function OnlineListUpdater")
+        self.client_item = client_item
 
     def run(self):
         while True:
             sleep(2)
-            client.client_online_list
+            self.client_item.client_online_list
             sleep(8)
 
 
-if __name__ == '__main__':
-    app = QApplication(sys.argv)
-    window = My_Window()
-    msg_updater = MsgUpdater()
-    online_status = OnlineListUpdater()
-    window.ui.connect_button.clicked.connect(msg_updater.start)
-    window.ui.connect_button.clicked.connect(online_status.start)
-    msg_updater.new_message.connect(window.get_new_message)
-    sys.exit(app.exec())
+# if __name__ == '__main__':
+#     app = QApplication(sys.argv)
+#     # Запускаем экран приветствия:
+#     # start_window = StartWindow()
+
+#     if start_window.ui.register_button.pressed and start_window.register_flag:
+#         window = My_Window(
+#             start_window.login, start_window.hashed_password, start_window.register_flag)
+#         app.exec()
+#     else:
+#         window = My_Window(start_window.login,
+#                            start_window.hashed_password, False)
+#         app.exec()
+#     msg_updater = MsgUpdater()
+
+#     online_status = OnlineListUpdater()
+#     window.ui.connect_button.clicked.connect(msg_updater.start)
+#     window.ui.connect_button.clicked.connect(online_status.start)
+#     msg_updater.new_message.connect(window.get_new_message)
+#     # sys.exit(app.exec())
