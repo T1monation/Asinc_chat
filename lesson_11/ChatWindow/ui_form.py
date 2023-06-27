@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 ################################################################################
-## Form generated from reading UI file 'formNJkxeY.ui'
+## Form generated from reading UI file 'formbHOzek.ui'
 ##
 ## Created by: Qt User Interface Compiler version 6.2.4
 ##
@@ -82,25 +82,23 @@ class Ui_ChatWindow(object):
         self.new_message = QPushButton(ChatWindow)
         self.new_message.setObjectName(u"new_message")
         self.new_message.setGeometry(QRect(320, 20, 131, 51))
-        self.connect_button = QPushButton(ChatWindow)
-        self.connect_button.setObjectName(u"connect_button")
-        self.connect_button.setEnabled(True)
-        self.connect_button.setGeometry(QRect(650, 90, 174, 24))
+        self.login_button = QPushButton(ChatWindow)
+        self.login_button.setObjectName(u"login_button")
+        self.login_button.setEnabled(True)
+        self.login_button.setGeometry(QRect(650, 90, 174, 24))
         self.disconnect_button = QPushButton(ChatWindow)
         self.disconnect_button.setObjectName(u"disconnect_button")
         self.disconnect_button.setEnabled(False)
         self.disconnect_button.setGeometry(QRect(650, 130, 174, 24))
-        self.label_4 = QLabel(ChatWindow)
-        self.label_4.setObjectName(u"label_4")
-        self.label_4.setGeometry(QRect(580, 30, 61, 16))
-        font = QFont()
-        font.setPointSize(14)
-        self.label_4.setFont(font)
-        self.label_4.setLayoutDirection(Qt.LeftToRight)
         self.client_name_label = QLabel(ChatWindow)
         self.client_name_label.setObjectName(u"client_name_label")
-        self.client_name_label.setGeometry(QRect(640, 30, 171, 21))
+        self.client_name_label.setGeometry(QRect(650, 20, 171, 21))
+        font = QFont()
+        font.setPointSize(14)
         self.client_name_label.setFont(font)
+        self.test_button = QPushButton(ChatWindow)
+        self.test_button.setObjectName(u"test_button")
+        self.test_button.setGeometry(QRect(360, 120, 75, 24))
 
         self.retranslateUi(ChatWindow)
 
@@ -114,9 +112,9 @@ class Ui_ChatWindow(object):
         self.label_2.setText(QCoreApplication.translate("ChatWindow", u"Clients online list :", None))
         self.label_3.setText(QCoreApplication.translate("ChatWindow", u"Frends list:", None))
         self.new_message.setText(QCoreApplication.translate("ChatWindow", u"Read new message", None))
-        self.connect_button.setText(QCoreApplication.translate("ChatWindow", u"Connect", None))
+        self.login_button.setText(QCoreApplication.translate("ChatWindow", u"Login", None))
         self.disconnect_button.setText(QCoreApplication.translate("ChatWindow", u"Disconnect", None))
-        self.label_4.setText(QCoreApplication.translate("ChatWindow", u"Client:", None))
-        self.client_name_label.setText(QCoreApplication.translate("ChatWindow", u"TextLabel", None))
+        self.client_name_label.setText(QCoreApplication.translate("ChatWindow", u"Welcome to chat!", None))
+        self.test_button.setText(QCoreApplication.translate("ChatWindow", u"test button", None))
     # retranslateUi
 

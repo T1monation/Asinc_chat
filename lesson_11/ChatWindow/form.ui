@@ -131,7 +131,7 @@
     <string>Read new message</string>
    </property>
   </widget>
-  <widget class="QPushButton" name="connect_button">
+  <widget class="QPushButton" name="login_button">
    <property name="enabled">
     <bool>true</bool>
    </property>
@@ -144,7 +144,7 @@
     </rect>
    </property>
    <property name="text">
-    <string>Connect</string>
+    <string>Login</string>
    </property>
   </widget>
   <widget class="QPushButton" name="disconnect_button">
@@ -163,32 +163,11 @@
     <string>Disconnect</string>
    </property>
   </widget>
-  <widget class="QLabel" name="label_4">
-   <property name="geometry">
-    <rect>
-     <x>580</x>
-     <y>30</y>
-     <width>61</width>
-     <height>16</height>
-    </rect>
-   </property>
-   <property name="font">
-    <font>
-     <pointsize>14</pointsize>
-    </font>
-   </property>
-   <property name="layoutDirection">
-    <enum>Qt::LeftToRight</enum>
-   </property>
-   <property name="text">
-    <string>Client:</string>
-   </property>
-  </widget>
   <widget class="QLabel" name="client_name_label">
    <property name="geometry">
     <rect>
-     <x>640</x>
-     <y>30</y>
+     <x>650</x>
+     <y>20</y>
      <width>171</width>
      <height>21</height>
     </rect>
@@ -199,7 +178,20 @@
     </font>
    </property>
    <property name="text">
-    <string>TextLabel</string>
+    <string>Welcome to chat!</string>
+   </property>
+  </widget>
+  <widget class="QPushButton" name="test_button">
+   <property name="geometry">
+    <rect>
+     <x>360</x>
+     <y>120</y>
+     <width>75</width>
+     <height>24</height>
+    </rect>
+   </property>
+   <property name="text">
+    <string>test button</string>
    </property>
   </widget>
  </widget>

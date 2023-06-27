@@ -9,6 +9,16 @@ from sqlalchemy.orm import Session
 import json
 from sqlalchemy import select as SEL
 import time
+import hmac
+import hashlib
+import os
+import random
+import string
+import re
+
+
+PATTERN = r'\{.*?\}\B'
+SICRET_KEY = "my_sickret_key"
 
 
 class Server(metaclass=ClassVerifier):
@@ -69,6 +79,7 @@ class Server(metaclass=ClassVerifier):
                     pass
                 requests = self.read_requests
                 if requests:
+                    print("11111\n", requests)
                     self.write_response(requests)
 
     @property
@@ -78,53 +89,74 @@ class Server(metaclass=ClassVerifier):
             try:
                 data = sock.recv(1024).decode('utf-8')
             except:
-                pass
-                # with Session(engine) as s:
-                #     #  при отключении клиента по его адресу и порту находим в БД запись
-                #     #  очищаем data, убираем статус онлайн
-                #     find_client = s.scalar(
-                #         SEL(Client).where(Client.data == str(sock.getpeername())))
-                #     find_client.status_online = False
 
-                #     find_client.data = None
+                with Session(engine) as s:
+                    #  при отключении клиента по его адресу и порту находим в БД запись
+                    #  очищаем data, убираем статус онлайн
+                    find_client = s.scalar(
+                        SEL(Client).where(Client.data == str(sock.getpeername())))
+                    find_client.status_online = False
+                    find_client.is_authenticated = False
 
-                #     s.commit()
+                    find_client.data = None
 
-                #     print(
-                #         f'Клиент {sock.fileno()} {sock.getpeername()} отключился')
-                #     sock.close()
-                #     self.clients.remove(sock)
+                    s.commit()
+
+                    print(
+                        f'Клиент {sock.fileno()} {sock.getpeername()} отключился')
+                    sock.close()
+                    self.clients.remove(sock)
             else:
-
+                print(sock)
+                print(data)
                 check_sock, check_data = self.data_analisis(sock, data)
                 response[check_sock] = check_data
 
         return response
 
+    def sender(self, msg, sock):
+        print(msg, sock)
+        resp = json.dumps(msg).encode('utf-8')
+        try:
+            sock.send(resp)
+
+        except:
+            with Session(engine) as s:
+
+                #  при отключении клиента по его адресу и порту находим в БД запись
+                #  очищаем data, убираем статус онлайн
+                find_client = s.scalar(
+                    SEL(Client).where(Client.data == str(sock.getpeername())))
+                find_client.status_online = False
+                find_client.is_authenticated = False
+                find_client.data = None
+
+                s.commit()
+
+            print(
+                f'Клиент {sock.fileno()} {sock.getpeername()} отключился')
+            sock.close()
+            self.clients.remove(sock)
+
     def write_response(self, requests: dict):
         for sock_msg in requests:
-            for sock in self.w:
-                # Сообзения с пометкой "destination": "self" возврящаем самим себе
-                if requests[sock_msg]["destination"] == "self" and sock_msg != sock:
-                    continue
-                try:
-                    resp = json.dumps(requests[sock_msg]).encode('utf-8')
-                    sock.send(resp)
-                except:
-                    with Session(engine) as s:
-                        #  при отключении клиента по его адресу и порту находим в БД запись
-                        #  очищаем data, убираем статус онлайн
-                        find_client = s.scalar(
-                            SEL(Client).where(Client.data == str(sock_msg.getpeername())))
-                        find_client.status_online = False
-                        find_client.data = None
+            if requests[sock_msg]["destination"] == "self":
+                self.sender(requests[sock_msg], sock_msg)
 
-                        s.commit()
+            else:
+                with Session(engine) as s:
+                    # Ищем адресата сообщения:
+                    find_user = s.scalar(
+                        SEL(Client).where(Client.login == requests[sock_msg]["destination"]))
 
-                    print(
-                        f'Клиент {sock_msg.fileno()} {sock_msg.getpeername()} отключился')
-                    sock.close()
-                    self.clients.remove(sock)
+                for sock in self.w:
+                    print(sock.fileno())
+                    print(find_user.sock_number)
+                    print(type(sock.fileno()))
+                    print(type(find_user.sock_number))
+                    if str(sock.getpeername()) == find_user.data and str(sock.fileno()) == find_user.sock_number:
+
+                        self.sender(requests[sock_msg], sock)
 
     def data_analisis(self, sock,  data):
         """
@@ -142,62 +174,57 @@ class Server(metaclass=ClassVerifier):
         else:
             if ansver["action"] == "presense":
                 user = ansver["name"]
+
                 with Session(engine) as s:
 
                     _find_login = s.scalar(
                         SEL(Client).where(Client.login.in_([user,])))
 
-                    # Создаем первичную запись о клиенте, если клиента с таким логином еще не существовало
-                    if not _find_login:
-                        _client = Client(
-                            login=ansver["name"],
-                            #  в data храним адрес и порт для идентификации клиента и его соединения
-                            data=str(sock.getpeername()),
-                            status_online=True
-                        )
-                        # применяем изменения в БД
-                        s.add(_client)
-                        s.commit()
+                    # # Создаем первичную запись о клиенте, если клиента с таким логином еще не существовало
+                    # if not _find_login:
+                    #     _client = Client(
+                    #         login=ansver["name"],
+                    #         #  в data храним адрес и порт для идентификации клиента и его соединения
+                    #         data=str(sock.getpeername()),
+                    #         status_online=True
+                    #     )
+                    #     # применяем изменения в БД
+                    #     s.add(_client)
+                    #     s.commit()
 
-                    else:
-                        # обновляем для уже существующего клиента data в БД
-                        _find_login.data = str(sock.getpeername())
-                        _find_login.status_online = True
+                    # else:
+                    # обновляем для уже существующего клиента data в БД
+                    message = "".join(random.SystemRandom().choice(
+                        string.ascii_letters + string.digits) for _ in range(25))
 
-                        s.commit()
+                    hash_msg = hmac.new(
+                        SICRET_KEY.encode('utf-8'), message.encode('utf-8'), hashlib.sha256)
+                    digest = hash_msg.hexdigest()
+                    _find_login.auth_string = digest
+                    _find_login.data = str(sock.getpeername())
+                    _find_login.status_online = True
+                    _find_login.sock_number = sock.fileno()
+
+                    s.commit()
+
                 response = {'name': 'server',
-                            'msg': "you online!",
-                            'action': 'msg',
+                            'b_string': message,
+                            'action': 'auth',
                             'time': time.time(),
                             'destination': 'self',
+                            # 'auth_state': True,
                             'response': 200}
                 return sock, response
 
             if ansver["action"] == 'msg':
-                # Устанавливаем True если сообщение другим пользователям
-                self.return_flag = True
+
                 user = ansver["name"]
                 with Session(engine) as s:
 
                     _find_login = s.scalar(
                         SEL(Client).where(Client.login.in_([user,])))
 
-                    # Создаем первичную запись о клиенте, если клиента с таким логином еще не существовало
-                    if not _find_login:
-                        _client = Client(
-                            login=ansver["name"],
-                            #  в data храним адрес и порт для идентификации клиента и его соединения
-                            data=str(sock.getpeername()),
-                            status_online=True
-                        )
-                        # применяем изменения в БД
-                        s.add(_client)
-                        s.commit()
-
-                    else:
-                        # обновляем для уже существующего клиента data в БД
-                        _find_login.data = str(sock.getpeername())
-                        _find_login.status_online = True
+                    _find_login.status_online = True
 
                     # Для каждого пакета будем писать историю:
                     _history = History(
@@ -219,10 +246,13 @@ class Server(metaclass=ClassVerifier):
                     find_list_2 = s.execute(SEL(Contacts.owner_frend).where(
                         Contacts.owner_login == ansver["name"])).all()
                     frend_list = [el[0] for el in find_list_2]
+                    client = s.scalar(
+                        SEL(Client).where(Client.login == ansver["name"]))
                     response = {'name': 'server',
                                 'cli_online': cli_list,
                                 'frends': frend_list,
                                 'action': 'get_contacts',
+                                'auth_state': client.is_authenticated,
                                 'time': time.time(),
                                 'destination': 'self',
                                 'response': 200}
@@ -290,7 +320,9 @@ class Server(metaclass=ClassVerifier):
                             login=ansver["name"],
                             #  в data храним адрес и порт для идентификации клиента и его соединения
                             password=ansver["password"],
+                            is_authenticated=True,
                             data=str(sock.getpeername()),
+                            sock_number=sock.fileno(),
                             status_online=True
                         )
                         # применяем изменения в БД
@@ -300,10 +332,50 @@ class Server(metaclass=ClassVerifier):
                         response = {'name': 'server',
                                     'msg': f'client {ansver["name"]} add to Chat DB',
                                     'action': 'register_sucsess',
+                                    'auth_state': _client.is_authenticated,
                                     'time': time.time(),
                                     'destination': 'self',
                                     'response': 201}
-                    return sock, response
+
+                        return sock, response
+                    else:
+                        response = {'name': 'server',
+                                    'msg': f'client {ansver["name"]} exist',
+                                    'action': 'register_exist',
+                                    'time': time.time(),
+                                    'auth_state': _find_login.is_authenticated,
+                                    'destination': 'self',
+                                    'response': 304}
+                        return sock, response
+
+            elif ansver["action"] == "auth":
+                user = ansver["login"]
+                with Session(engine) as s:
+
+                    _find_login = s.scalar(
+                        SEL(Client).where(Client.login.in_([user,])))
+
+                    if _find_login.password == ansver['hashed_password'] and _find_login.auth_string == ansver['b_stryng']:
+                        _find_login.is_authenticated = True
+
+                        s.commit()
+
+                        response = {'name': 'server',
+                                            'action': 'auth_ok',
+                                            'time': time.time(),
+                                            'destination': 'self',
+                                            'auth_state': _find_login.is_authenticated,
+                                            'response': 200}
+                        return sock, response
+
+                    else:
+                        response = {'name': 'server',
+                                            'action': 'auth_false',
+                                            'time': time.time(),
+                                            'destination': 'self',
+                                            'auth_state': _find_login.is_authenticated,
+                                            'response': 200}
+                        return sock, response
 
             else:
                 print(ansver)
