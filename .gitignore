@@ -130,3 +130,6 @@ dmypy.json
 
 
 1111.py
+
+.vscode
+.idea
