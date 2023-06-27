@@ -21,6 +21,7 @@ PATTERN = r'\{.*?\}\B'
 SICRET_KEY = "my_sickret_key"
 
 
+
 class Server(metaclass=ClassVerifier):
     clients = []
     port = PortChecker()
@@ -90,6 +91,7 @@ class Server(metaclass=ClassVerifier):
                 data = sock.recv(1024).decode('utf-8')
             except:
 
+
                 with Session(engine) as s:
                     #  при отключении клиента по его адресу и порту находим в БД запись
                     #  очищаем data, убираем статус онлайн
@@ -107,6 +109,7 @@ class Server(metaclass=ClassVerifier):
                     sock.close()
                     self.clients.remove(sock)
             else:
+
                 check_sock, check_data = self.data_analisis(sock, data)
                 response[check_sock] = check_data
 
@@ -151,6 +154,7 @@ class Server(metaclass=ClassVerifier):
 
                         self.sender(requests[sock_msg], sock)
 
+
     def data_analisis(self, sock,  data):
         """
         data_analisis - метод - "перехватчик", анализирует сообщения,
@@ -172,6 +176,7 @@ class Server(metaclass=ClassVerifier):
 
                     _find_login = s.scalar(
                         SEL(Client).where(Client.login.in_([user,])))
+
 
                     # # Создаем первичную запись о клиенте, если клиента с таким логином еще не существовало
                     # if not _find_login:
@@ -206,6 +211,7 @@ class Server(metaclass=ClassVerifier):
                             'time': time.time(),
                             'destination': 'self',
                             # 'auth_state': True,
+
                             'response': 200}
                 return sock, response
 
@@ -217,7 +223,9 @@ class Server(metaclass=ClassVerifier):
                     _find_login = s.scalar(
                         SEL(Client).where(Client.login.in_([user,])))
 
+
                     _find_login.status_online = True
+
 
                     # Для каждого пакета будем писать историю:
                     _history = History(
@@ -239,13 +247,17 @@ class Server(metaclass=ClassVerifier):
                     find_list_2 = s.execute(SEL(Contacts.owner_frend).where(
                         Contacts.owner_login == ansver["name"])).all()
                     frend_list = [el[0] for el in find_list_2]
+
                     client = s.scalar(
                         SEL(Client).where(Client.login == ansver["name"]))
+
                     response = {'name': 'server',
                                 'cli_online': cli_list,
                                 'frends': frend_list,
                                 'action': 'get_contacts',
+
                                 'auth_state': client.is_authenticated,
+
                                 'time': time.time(),
                                 'destination': 'self',
                                 'response': 200}
@@ -299,6 +311,7 @@ class Server(metaclass=ClassVerifier):
                                 'destination': 'self',
                                 'response': 200}
                 return sock, response
+
 
             elif ansver["action"] == "register":
                 user = ansver["name"]
@@ -369,6 +382,7 @@ class Server(metaclass=ClassVerifier):
                                             'auth_state': _find_login.is_authenticated,
                                             'response': 200}
                         return sock, response
+
 
             else:
                 print(ansver)
