@@ -1,0 +1,179 @@
+Welcome to Asinc_chat's documentation!
+**************************************
+
+class client_gui.Client(client_name='username', ip_addr='localhost', port=7777)
+
+   auth(msg: str)
+
+      Метод для авторизации пользователя на сервере
+
+      Args:
+         msg (str): Случайно-сгенерированная на сервере строка
+
+   property client_online_list
+
+      Метод, который запращивает у сервера список клиентов онланй
+
+   static client_read(socket, q: JoinableQueue)
+
+      Метод принимает сообщения от сервера. Args:
+
+         socket : экземпляр сокета, который будет принимать сообщения
+         q (JoinableQueue): очередь, в которую будут помещаться
+         сообщения
+
+   static client_send_m(socket, q: JoinableQueue)
+
+      Метод для отправки сообщений на сервер. Args:
+
+         socket : экземпляр сокета, который будет отправлять сообщения
+         q (JoinableQueue): Очередь, из которой будут извлекаться
+         сообщения
+
+   client_to_add(name: str)
+
+      Метод для добавления пользователя в список контактов Args:
+
+         name (str): login пользователя
+
+   client_to_del(name: str)
+
+      Метод для удаления клиента из списка контактов
+
+      Args:
+         name (str): логин удаляемого клиента
+
+   property close_connection
+
+      Метод для завершения работы клюентского приложения, закрывает
+      запущенные процессы, сокет, и осуществляет выход из приложения
+
+         с кодом 1.
+
+   make_connection()
+
+      Метод для создания подключения к серверу
+
+   static parser()
+
+      Метод - парсер аргументов коммандной строки
+
+   property presense
+
+      Сервисное сообщение о подключении пользователя
+
+   register(login: str, password: str)
+
+      Метод для регистрации нового пользователя Args:
+
+         login (str): логин нового пользователя password (str): стока
+         хешированного пароля нового пользователя
+
+   send_message(text: str, destination='self')
+
+      Метод для отправки сообщения на сервер
+
+      Args:
+         text (str): текст отправляемого сообщения destination (str,
+         optional): получатель сообщения. Defaults to "self".
+
+   property start_chat
+
+      Метод для запуска клиентской части приложения
+
+   property start_message
+
+      Метод, который запускает процессы приема и отправки сообщений
+
+class gui.My_Window(client_item: Client, client_name: str, hashed_password: str, register_flag: bool)
+
+   active_chat(el)
+
+      Метод устанавливающий активный чат Args:
+
+         el : индекс элемента QcomboBox
+
+   add_frend(item)
+
+      Метод для лобавления друзей в список друзей
+
+      Args:
+         item (str | Qobj): добавляемый логин в виде строги или Qobj
+
+   static auth_check(func)
+
+      Декоратор для перехвата входящих сообщений, и считывания статуса
+      авторизации
+
+   clicked_send_to_chat_button()
+
+      Метод обработчик нажатия на кнопку send to chat
+
+   del_frend(item)
+
+      Метод для удаления друзей из списка друзей
+
+      Args:
+         item (str | Qobj): удаляемый логин в виде строги или Qobj
+
+   get_new_message(message: dict)
+
+      Метод для расшифровки полученного от сервера сообщения
+
+      Args:
+         message (dict): Словарь полученный от сервера
+
+   static login_required(func)
+
+      Декоратор разрешающий выполнение функции авторизованному
+      пользователю
+
+   message_box
+
+      alias of "QMessageBox"
+
+   message_writher(message)
+
+      Метод для передачи в GUI сообщения
+
+      Args:
+         message (str | dict): принимаемое сообщение может быть str
+         или dict
+
+   property new_mesage_finder
+
+      Метод-поисковик непросмотренных сообщений
+
+   test()
+
+      Метод кнопки - тестера, срабатывает когда пользователь
+      авторизован
+
+   upload_message(index)
+
+      Метод принимает индекс для comboBox, и переключает вкладку
+
+      Args:
+         index : индекс QcomboBox
+
+class gui.MsgUpdater(client_item: Client)
+
+   run()
+
+      Метод запуска проверки наличия сообщений
+
+class gui.OnlineListUpdater(client_item: Client)
+
+   run()
+
+      Метод запуска запросов актуальной информации от сервера
+
+
+Indices and tables
+******************
+
+* Алфавитный указатель
+
+* Состав модуля
+
+* Поиск
