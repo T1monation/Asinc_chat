@@ -8,7 +8,7 @@ import sys
 # -- Project information -----------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
 
-project = 'Asinc_chat'
+project = "Timonation's Asinc_chat"
 copyright = '2023, Timonation'
 author = 'Timonation'
 
@@ -20,7 +20,7 @@ extensions = ['sphinx.ext.autodoc']
 templates_path = ['_templates']
 exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store']
 
-sys.path.insert(0, "C:\\Users\\Timon\\Asinc_chat\\main_app")
+sys.path.insert(0, "C:\\Users\\Timon\\Asinc_chat\\tim_asinc_chat")
 
 
 # -- Options for HTML output -------------------------------------------------

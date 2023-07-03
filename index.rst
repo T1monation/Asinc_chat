@@ -11,7 +11,7 @@ Welcome to Asinc_chat's documentation!
    :caption: Contents:
 
 
-.. automodule:: server_gui
+.. automodule:: tim_asinc_chat_server
 
 
 .. autoclass:: Server
